@@ -11,6 +11,7 @@ app.post("/saweria", (req, res) => {
   donations.push({
     id,
     donator_name: body.donator_name || body.name || "Anonim",
+    username: body.donator_name || body.name || "Anonim",
     amount: body.amount || 0,
     message: body.message || "",
     avatar: body.donator_avatar || body.avatar || "",
@@ -20,17 +21,24 @@ app.post("/saweria", (req, res) => {
   res.json({ success: true, id });
 });
 
-app.get("/api/pull", (req, res) => {
-  const limit = parseInt(req.query.limit || "10");
-  const pending = donations.filter((d) => !acked.has(d.id)).slice(0, limit);
-  res.json({ donations: pending });
+// Support GET dan POST /api/pull
+app.all("/api/pull", (req, res) => {
+  const body = req.body || {};
+  const limit = parseInt((body.limit) || req.query.limit || "10");
+  const pending = donations
+    .filter((d) => !acked.has(d.id))
+    .slice(0, limit);
+  res.json({ ok: true, items: pending });
 });
 
-app.post("/api/ack", (req, res) => {
-  const { id } = req.body;
-  if (!id) return res.status(400).json({ error: "No id" });
-  acked.add(id);
-  res.json({ success: true });
+// Support GET dan POST /api/ack
+app.all("/api/ack", (req, res) => {
+  const body = req.body || {};
+  const items = body.items || [];
+  for (const item of items) {
+    if (item.id) acked.add(item.id);
+  }
+  res.json({ ok: true });
 });
 
 app.get("/", (req, res) => {
